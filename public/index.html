@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThinkCERCA Smart Lesson Plan Builder</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+<link rel="icon" href="favicon.ico" type="image/x-icon" />
+<link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+</head>
+<body>
+  <div class="container">
+    <h1>ThinkCERCA Smart Lesson Plan Builder</h1>
+    <b>Instructions</b>
+    <ol>
+      <li>Enter the content ID for your selection in the <i>Content ID</i> field.</li>
+      <li>Click <b>Generate Lesson Plan</b>.</li>
+      <li>Review the generated content and make changes as needed.</li>
+      <li>Click <b>Submit Lesson Plan</b>.</li>
+    </ol>
+    
+    <!-- Content ID Input -->
+<div class="autocomplete-container">
+  <label for="content-id">Content ID:</label>
+  <input type="text" id="content-id" placeholder="Start typing the Content ID to search..." autocomplete="off">
+  <ul id="autocomplete-list" class="autocomplete-list hidden"></ul>
+</div>
+    <button id="generate-btn" onclick="generateLessonPlan()">Generate Lesson Plan</button>
+
+    <!-- Loading message -->
+    <p id="loading-message" class="hidden">Generating lesson plan. This might take up to 30 seconds. Please wait.</p>
+
+    <div class="progress-container hidden">
+      <div id="progress-bar" class="progress-bar"></div>
+    </div>
+
+    <!-- Editable fields for Summary, Tags, Glossed Text, Vocabulary Words -->
+    <div class="form-section">
+      <label for="summary">Summary:</label>
+      <textarea id="summary" rows="4" placeholder="Generated summary will appear here..."></textarea>
+    </div>
+
+    <div class="form-section, hidden">
+      <label for="writing-prompt">Writing Prompt:</label>
+      <textarea id="writing-prompt" rows="4" placeholder="Generated writing prompt will appear here..."></textarea>
+    </div>
+
+    <div class="form-section">
+      <label for="tags">Tags:</label>
+      <textarea id="tags" rows="2" placeholder="Generated tags will appear here..."></textarea>
+    </div>
+
+    <div class="form-section">
+      <label for="glossed-text">Glossed Text:</label>
+      <textarea id="glossed-text" rows="10" placeholder="Glossed text with asterisks will appear here..."></textarea>
+    </div>
+
+    <div class="form-section">
+      <label for="vocabulary-words">Vocabulary Words:</label>
+      <textarea id="vocabulary-words" rows="10" placeholder="Generated vocabulary words will appear here..."></textarea>
+    </div>
+
+    <div class="form-section">
+      <label for="multiple-choice-questions">Multiple Choice Questions:</label>
+      <textarea id="multiple-choice-questions" rows="15" placeholder="Generated MCQs will appear here..."></textarea>
+    </div>
+
+<button id="submit-btn" type="submit" disabled>Submit Lesson Plan</button>
+<button id="clear-btn" type="button" disabled>Clear Form</button>
+
+    <div class="form-section">
+      <h3 id="standards-title" class="hidden">Standards Dictionary</h3>
+      <pre id="standards-dictionary" class="hidden"></pre>    
+    </div>
+
+    <!-- Success message -->
+    <p id="success-message" class="hidden" style="visibility: hidden;">Lesson plan created successfully!</p>
+    <div id="success-popup">
+      <p>Lesson plan submitted successfully!</p>
+      <button id="close-popup">OK</button>
+    </div>
+  </div>
+
+  <script src="/js/script.js"></script>
+</body>
+</html>
