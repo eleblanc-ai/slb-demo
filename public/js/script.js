@@ -191,6 +191,16 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
       const popup = document.getElementById('success-popup');
       popup.style.display = 'block';
 
+      // Set the href attributes for the download links
+      document.getElementById('word-link').setAttribute('href', result.wordFile);
+      document.getElementById('excel-link').setAttribute('href', result.excelFile);
+
+      // Set the download attribute with the correct filenames
+      const wordFileName = result.wordFile.split('/').pop();  // Extract the actual Word filename
+      const excelFileName = result.excelFile.split('/').pop();  // Extract the actual Excel filename
+      document.getElementById('word-link').setAttribute('download', wordFileName);
+      document.getElementById('excel-link').setAttribute('download', excelFileName);
+
       document.getElementById('generate-btn').textContent = 'Generate Lesson Plan';
       toggleButtons();
     } else {

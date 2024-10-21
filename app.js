@@ -221,9 +221,13 @@ async function saveToWord(contentId, summary, tags, vocabularyWords, glossedText
     const formattedTime = `${hours}${minutes}`;
     const fileName = `${contentId}-${formattedDate}-${formattedTime}.docx`;
 
-    const dirPath = path.join(__dirname, 'completed-lesson-plans');
-    fs.mkdirSync(dirPath, { recursive: true });
-    fs.writeFileSync(path.join(dirPath, fileName), buffer);
+    const dirPath = path.join(__dirname, 'completed-lesson-plans'); // Define dirPath
+    fs.mkdirSync(dirPath, { recursive: true }); // Create the directory if it doesn't exist
+
+    const filePath = path.join(dirPath, fileName); // Full path to the saved Word file
+    fs.writeFileSync(filePath, buffer);
+
+    return filePath;
 }
 
 
@@ -245,6 +249,7 @@ if (!process.env.OPENAI_API_KEY) {
 const app = express();
 app.use(bodyParser.json());
 app.use(express.static('public'));
+app.use('/completed-lesson-plans', express.static(path.join(__dirname, 'completed-lesson-plans')));
 
 async function addToExcel(contentId, summary, tags, glossedText, vocabularyWords, mcqs) {
   // Get today's date in 'YYYYMMDD' format
@@ -274,6 +279,7 @@ const dailyExcelFilePath = path.join(__dirname, 'completed-lesson-plans', `smart
 
   // Save the workbook (create a new file if it doesn't exist)
   await workbook.xlsx.writeFile(dailyExcelFilePath);
+  return dailyExcelFilePath;
 }
 
 app.post('/submit-lesson', async (req, res) => {
@@ -286,8 +292,16 @@ app.post('/submit-lesson', async (req, res) => {
     // Add data to Excel
     await addToExcel(contentId, summary, tags, vocabularyWords, glossedText, mcqs);
 
-    // Send success response
-    res.json({ success: true });
+    const wordFilePath = await saveToWord(contentId, summary, tags, vocabularyWords, glossedText, mcqs);
+    const excelFilePath = await addToExcel(contentId, summary, tags, vocabularyWords, glossedText, mcqs);
+
+    // Return the URLs to download these files
+ res.json({
+      success: true,
+      wordFile: `/completed-lesson-plans/${path.basename(wordFilePath)}`,  // Use the correct Word file path
+      excelFile: `/completed-lesson-plans/${path.basename(excelFilePath)}`  // Use the correct Excel file path
+    });
+
   } catch (error) {
     console.error('Error submitting lesson plan:', error);
     res.status(500).json({ success: false, error: 'Failed to submit lesson plan.' });

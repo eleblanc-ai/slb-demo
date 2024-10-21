@@ -10,6 +10,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 <link rel="icon" href="favicon.ico" type="image/x-icon" />
 <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<script>
+  if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual'; // Prevent the browser from restoring the scroll position
+  }
+  window.scrollTo(0, 0); // Scroll to the top
+</script>
 </head>
 <body>
   <div class="container">
@@ -67,23 +74,29 @@
       <label for="multiple-choice-questions">Multiple Choice Questions:</label>
       <textarea id="multiple-choice-questions" rows="15" placeholder="Generated MCQs will appear here..."></textarea>
     </div>
-
 <button id="submit-btn" type="submit" disabled>Submit Lesson Plan</button>
 <button id="clear-btn" type="button" disabled>Clear Form</button>
-
     <div class="form-section">
       <h3 id="standards-title" class="hidden">Standards Dictionary</h3>
       <pre id="standards-dictionary" class="hidden"></pre>    
     </div>
-
     <!-- Success message -->
     <p id="success-message" class="hidden" style="visibility: hidden;">Lesson plan created successfully!</p>
-    <div id="success-popup">
-      <p>Lesson plan submitted successfully!</p>
-      <button id="close-popup">OK</button>
-    </div>
+<div id="success-popup" style="display: none;">
+  <p>Lesson plan submitted successfully!</p>
+  <p>Download lesson plan:</p>
+  <div class="downloadlink-container">
+    <!-- These links will be populated dynamically with href and download attributes -->
+    <a id="word-link" class="downloadlink" target="_new">
+      <i class="fas fa-file-word"></i>
+    </a>
+    <a id="excel-link" class="downloadlink" target="_new">
+      <i class="fas fa-file-excel"></i>
+    </a>
   </div>
-
+  <button id="close-popup">OK</button>
+</div>
+  </div>
   <script src="/js/script.js"></script>
 </body>
 </html>
