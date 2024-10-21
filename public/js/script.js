@@ -203,6 +203,9 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
 
       document.getElementById('generate-btn').textContent = 'Generate Lesson Plan';
       toggleButtons();
+
+      window.scrollTo({ top: 0, behavior: 'smooth' }); // Smooth scroll to the top
+
     } else {
       alert('Error submitting the lesson plan.');
     }
