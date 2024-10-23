@@ -17,6 +17,7 @@
   }
   window.scrollTo(0, 0); // Scroll to the top
 </script>
+<script src="https://cdn.tiny.cloud/1/9nx1ctnb95hz3hqkko6n2j3g273art6s7ypb96c2oxt7iauc/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 </head>
 <body>
   <div class="container">
@@ -35,7 +36,7 @@
   <input type="text" id="content-id" placeholder="Start typing the Content ID to search..." autocomplete="off">
   <ul id="autocomplete-list" class="autocomplete-list hidden"></ul>
 </div>
-    <button id="generate-btn" onclick="generateLessonPlan()">Generate Lesson Plan</button>
+    <button id="generate-btn">Generate Lesson Plan</button>
 
     <!-- Loading message -->
     <p id="loading-message" class="hidden">Generating lesson plan. This might take up to 30 seconds. Please wait.</p>
@@ -47,12 +48,7 @@
     <!-- Editable fields for Summary, Tags, Glossed Text, Vocabulary Words -->
     <div class="form-section">
       <label for="summary">Summary:</label>
-      <textarea id="summary" rows="4" placeholder="Generated summary will appear here..."></textarea>
-    </div>
-
-    <div class="form-section, hidden">
-      <label for="writing-prompt">Writing Prompt:</label>
-      <textarea id="writing-prompt" rows="4" placeholder="Generated writing prompt will appear here..."></textarea>
+	<div id="summary" class="tinymce-editor">Generated summary will appear here...</div>
     </div>
 
     <div class="form-section">
@@ -62,17 +58,17 @@
 
     <div class="form-section">
       <label for="glossed-text">Glossed Text:</label>
-      <textarea id="glossed-text" rows="10" placeholder="Glossed text with asterisks will appear here..."></textarea>
+	<div id="glossed-text" class="tinymce-editor">Glossed text with asterisks will appear here...</div>
     </div>
 
     <div class="form-section">
       <label for="vocabulary-words">Vocabulary Words:</label>
-      <textarea id="vocabulary-words" rows="10" placeholder="Generated vocabulary words will appear here..."></textarea>
+	<div id="vocabulary-words" class="tinymce-editor">Generated vocabulary words will appear here...</div>
     </div>
 
     <div class="form-section">
       <label for="multiple-choice-questions">Multiple Choice Questions:</label>
-      <textarea id="multiple-choice-questions" rows="15" placeholder="Generated MCQs will appear here..."></textarea>
+	<div id="multiple-choice-questions" class="tinymce-editor">Genereated MCQs will appear here...</div>
     </div>
 <button id="submit-btn" type="submit" disabled>Submit Lesson Plan</button>
 <button id="clear-btn" type="button" disabled>Clear Form</button>

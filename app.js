@@ -6,6 +6,7 @@ import { promises as fsPromises } from 'fs';
 import { extractStandards } from './public/js/extractStandards.js';
 
 import ExcelJS from 'exceljs'; // for Excel file handling
+import HTMLtoDOCX from 'html-to-docx';
 import pkg from 'file-saver';
 const { saveAs } = pkg; // Use file-saver for client-side file saving
 
@@ -22,9 +23,171 @@ import { Document, Packer, Paragraph, TextRun } from 'docx'; // Ensure you impor
 import dotenv from 'dotenv';
 dotenv.config();
 
-
+// Add this helper function at the top of app.js
+function stripHtml(html) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.body.textContent || "";
+}
 
 async function saveToWord(contentId, summary, tags, vocabularyWords, glossedText, mcqs) {
+    // Add debugging log
+    console.log('Processing content:', {
+        summary: summary?.substring(0, 100),
+        tags: tags?.substring(0, 100),
+        vocabularyWords: vocabularyWords?.substring(0, 100),
+        glossedText: glossedText?.substring(0, 100),
+        mcqs: mcqs?.substring(0, 100)
+    });
+
+  function splitIntoParagraphs(content) {
+    if (!content) return [];
+    
+    try {
+        // Fix special characters first
+        const decodedContent = content
+            .replace(/&rsquo;/g, "'")
+            .replace(/&ldquo;/g, '"')
+            .replace(/&rdquo;/g, '"')
+            .replace(/&nbsp;/g, " ")
+            .replace(/&amp;/g, "&");
+
+        // Special handling for MCQs
+        if (content.includes('A.') && content.includes('B.') && content.includes('C.') && content.includes('D.')) {
+            const sections = decodedContent
+                .replace(/<p>/g, '')
+                .replace(/<\/p>/g, '\n')
+                .replace(/<br\s*\/?>/g, '\n')
+                .replace(/<[^>]*>/g, '')
+                .split('\n')
+                .filter(line => line.trim());
+
+            return sections.map(line => {
+                const isStandard = /^\[.*\]/.test(line.trim());
+                return new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: line.trim(),
+                            font: "Aptos",
+                            size: 24,
+                            // Removed bold setting
+                        })
+                    ],
+                    spacing: {
+                        before: /^\d+\./.test(line.trim()) ? 240 : 0, // Space before new questions
+                        after: isStandard ? 240 : 60  // Less space between answer choices
+                    }
+                });
+            });
+        }
+
+        // For other content types, preserve formatting
+        const sections = decodedContent
+            .replace(/<p>/g, '')
+            .replace(/<\/p>/g, '\n\n')
+            .replace(/<br\s*\/?>/g, '\n')
+            .split('\n')
+            .filter(line => line.trim());
+
+        return sections.map(line => {
+            // Process each line to preserve formatting
+            const runs = [];
+            let currentText = '';
+            let currentFormat = { bold: false, italic: false };
+            
+            // Split the line into segments based on formatting tags
+            const segments = line.split(/(<\/?(?:strong|b|em|i)>)/);
+            
+            segments.forEach(segment => {
+                if (segment === '<strong>' || segment === '<b>') {
+                    if (currentText) {
+                        runs.push(new TextRun({
+                            text: currentText,
+                            bold: currentFormat.bold,
+                            italic: currentFormat.italic,
+                            font: "Aptos",
+                            size: 24,
+                        }));
+                        currentText = '';
+                    }
+                    currentFormat.bold = true;
+                } else if (segment === '</strong>' || segment === '</b>') {
+                    if (currentText) {
+                        runs.push(new TextRun({
+                            text: currentText,
+                            bold: currentFormat.bold,
+                            italic: currentFormat.italic,
+                            font: "Aptos",
+                            size: 24,
+                        }));
+                        currentText = '';
+                    }
+                    currentFormat.bold = false;
+                } else if (segment === '<em>' || segment === '<i>') {
+                    if (currentText) {
+                        runs.push(new TextRun({
+                            text: currentText,
+                            bold: currentFormat.bold,
+                            italic: currentFormat.italic,
+                            font: "Aptos",
+                            size: 24,
+                        }));
+                        currentText = '';
+                    }
+                    currentFormat.italic = true;
+                } else if (segment === '</em>' || segment === '</i>') {
+                    if (currentText) {
+                        runs.push(new TextRun({
+                            text: currentText,
+                            bold: currentFormat.bold,
+                            italic: currentFormat.italic,
+                            font: "Aptos",
+                            size: 24,
+                        }));
+                        currentText = '';
+                    }
+                    currentFormat.italic = false;
+                } else if (!segment.startsWith('<')) {
+                    currentText += segment;
+                }
+            });
+
+            // Add any remaining text
+            if (currentText) {
+                runs.push(new TextRun({
+                    text: currentText,
+                    bold: currentFormat.bold,
+                    italic: currentFormat.italic,
+                    font: "Aptos",
+                    size: 24,
+                }));
+            }
+
+            return new Paragraph({
+                children: runs,
+                spacing: {
+                    after: 200
+                }
+            });
+        });
+
+    } catch (error) {
+        console.error('Error processing content:', error);
+        return [new Paragraph({
+            children: [
+                new TextRun({
+                    text: content
+                        .replace(/<[^>]*>/g, '')
+                        .replace(/&rsquo;/g, "'")
+                        .replace(/&ldquo;/g, '"')
+                        .replace(/&rdquo;/g, '"')
+                        .trim(),
+                    font: "Aptos",
+                    size: 24,
+                })
+            ]
+        })];
+    }
+}
     const doc = new Document({
         sections: [{
             properties: {},
@@ -53,15 +216,7 @@ async function saveToWord(contentId, summary, tags, vocabularyWords, glossedText
                         }),
                     ],
                 }),
-                new Paragraph({
-                    children: [
-                        new TextRun({
-                            text: summary,
-                            font: "Aptos",
-                            size: 24,
-                        }),
-                    ],
-                }),
+                ...splitIntoParagraphs(summary),
                 new Paragraph({ text: '' }),
 
                 // Tags Section
@@ -78,7 +233,7 @@ async function saveToWord(contentId, summary, tags, vocabularyWords, glossedText
                 new Paragraph({
                     children: [
                         new TextRun({
-                            text: tags,
+                            text: tags || '',
                             font: "Aptos",
                             size: 24,
                         }),
@@ -86,7 +241,7 @@ async function saveToWord(contentId, summary, tags, vocabularyWords, glossedText
                 }),
                 new Paragraph({ text: '' }),
 
-                // Glossed Text Section (Title + Byline + Body Paragraphs)
+                // Glossed Text Section
                 new Paragraph({
                     children: [
                         new TextRun({
@@ -97,49 +252,10 @@ async function saveToWord(contentId, summary, tags, vocabularyWords, glossedText
                         }),
                     ],
                 }),
-
-                // Split glossedText by line breaks
-                ...glossedText.split('\n').map((line, index) => {
-                    // First line is the title
-                    if (index === 0) {
-                        return new Paragraph({
-                            children: [
-                                new TextRun({
-                                    text: line.trim(),
-                                    font: "Aptos",
-                                    size: 24,
-                                }),
-                            ],
-                        });
-                    }
-
-                    // Second line is the byline
-                    if (index === 1) {
-                        return new Paragraph({
-                            children: [
-                                new TextRun({
-                                    text: line.trim(),
-                                    font: "Aptos",
-                                    size: 24,
-                                }),
-                            ],
-                        });
-                    }
-
-                    // Remaining lines are body paragraphs
-                    return new Paragraph({
-                        children: [
-                            new TextRun({
-                                text: line.trim(),
-                                font: "Aptos",
-                                size: 24,
-                            }),
-                        ],
-                    });
-                }),
+                ...splitIntoParagraphs(glossedText),
                 new Paragraph({ text: '' }),
 
-                // Vocabulary Words Section (after Glossed Text)
+                // Vocabulary Words Section
                 new Paragraph({
                     children: [
                         new TextRun({
@@ -150,15 +266,7 @@ async function saveToWord(contentId, summary, tags, vocabularyWords, glossedText
                         }),
                     ],
                 }),
-                ...vocabularyWords.split('\n').map(word => new Paragraph({
-                    children: [
-                        new TextRun({
-                            text: word.trim(),
-                            font: "Aptos",
-                            size: 24,
-                        }),
-                    ],
-                })),
+                ...splitIntoParagraphs(vocabularyWords),
                 new Paragraph({ text: '' }),
 
                 // MCQs Section
@@ -172,42 +280,7 @@ async function saveToWord(contentId, summary, tags, vocabularyWords, glossedText
                         }),
                     ],
                 }),
-                ...mcqs.split(/\n(?=\d+\.)/).flatMap(mcq => {
-                    const lines = mcq.trim().split('\n');
-                    const question = lines[0];
-                    const answers = lines.slice(1, 5);
-                    const standards = lines[5];
-
-                    return [
-                        new Paragraph({
-                            children: [
-                                new TextRun({
-                                    text: question,
-                                    font: "Aptos",
-                                    size: 24,
-                                }),
-                            ],
-                        }),
-                        ...answers.map(answer => new Paragraph({
-                            children: [
-                                new TextRun({
-                                    text: answer.trim(),
-                                    font: "Aptos",
-                                    size: 24,
-                                }),
-                            ],
-                        })),
-                        new Paragraph({
-                            children: [
-                                new TextRun({
-                                    text: standards.trim(),
-                                    font: "Aptos",
-                                    size: 24,
-                                }),
-                            ],
-                        }),
-                    ];
-                }),
+                ...splitIntoParagraphs(mcqs),
             ],
         }],
     });
@@ -215,21 +288,23 @@ async function saveToWord(contentId, summary, tags, vocabularyWords, glossedText
     const buffer = await Packer.toBuffer(doc);
 
     const date = new Date();
-    const formattedDate = date.toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/-/g, '');
+    const formattedDate = date.toLocaleDateString('en-CA', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit' 
+    }).replace(/-/g, '');
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const formattedTime = `${hours}${minutes}`;
     const fileName = `${contentId}-${formattedDate}-${formattedTime}.docx`;
 
-    const dirPath = path.join(__dirname, 'completed-lesson-plans'); // Define dirPath
-    fs.mkdirSync(dirPath, { recursive: true }); // Create the directory if it doesn't exist
-
-    const filePath = path.join(dirPath, fileName); // Full path to the saved Word file
+    const dirPath = path.join(__dirname, 'completed-lesson-plans');
+    fs.mkdirSync(dirPath, { recursive: true });
+    const filePath = path.join(dirPath, fileName);
     fs.writeFileSync(filePath, buffer);
 
     return filePath;
 }
-
 
 const standardsFileName = "../assets/files/MOAC.xlsx"; // Restore this constant
 const vocabJsonPath = path.join(__dirname, 'public/assets/files/vocabularies.json'); 
@@ -244,7 +319,6 @@ if (!process.env.OPENAI_API_KEY) {
   console.error('Error: OpenAI API key not found. Please set OPENAI_API_KEY in your environment variables.');
   process.exit(1);
 }
-
 
 const app = express();
 app.use(bodyParser.json());

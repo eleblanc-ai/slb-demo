@@ -1,24 +1,99 @@
+// Initialize Summary editor
+tinymce.init({
+    selector: '#summary',
+    height: 250,
+    menubar: true,
+    plugins: [
+        'advlist', 'autolink', 'lists', 'link', 'charmap', 'preview',
+        'searchreplace', 'visualblocks', 'code', 'fullscreen',
+        'insertdatetime', 'table', 'wordcount'
+    ],
+    toolbar: 'undo redo | formatselect | ' +
+        'bold italic underline | alignleft aligncenter ' +
+        'alignright alignjustify | bullist numlist outdent indent | ' +
+        'removeformat',
+    content_style: 'body { font-family: Arial, sans-serif; font-size: 14px }',
+    statusbar: true,
+    resize: true
+});
+
+// Initialize Glossed Text editor
+tinymce.init({
+    selector: '#glossed-text',
+    height: 500,
+    menubar: true,
+    plugins: [
+        'advlist', 'autolink', 'lists', 'link', 'charmap', 'preview',
+        'searchreplace', 'visualblocks', 'code', 'fullscreen',
+        'insertdatetime', 'table', 'wordcount'
+    ],
+    toolbar: 'undo redo | formatselect | ' +
+        'bold italic underline | alignleft aligncenter ' +
+        'alignright alignjustify | bullist numlist outdent indent | ' +
+        'removeformat',
+    content_style: 'body { font-family: Arial, sans-serif; font-size: 14px }',
+    statusbar: true,
+    resize: true
+});
+
+// Initialize Vocabulary Words editor
+tinymce.init({
+    selector: '#vocabulary-words',
+    height: 400,
+    menubar: true,
+    plugins: [
+        'advlist', 'autolink', 'lists', 'link', 'charmap', 'preview',
+        'searchreplace', 'visualblocks', 'code', 'fullscreen',
+        'insertdatetime', 'table', 'wordcount'
+    ],
+    toolbar: 'undo redo | formatselect | ' +
+        'bold italic underline | alignleft aligncenter ' +
+        'alignright alignjustify | bullist numlist outdent indent | ' +
+        'removeformat',
+    content_style: 'body { font-family: Arial, sans-serif; font-size: 14px }',
+    statusbar: true,
+    resize: true
+});
+
+// Initialize Multiple Choice Questions editor
+tinymce.init({
+    selector: '#multiple-choice-questions',
+    height: 500,
+    menubar: true,
+    plugins: [
+        'advlist', 'autolink', 'lists', 'link', 'charmap', 'preview',
+        'searchreplace', 'visualblocks', 'code', 'fullscreen',
+        'insertdatetime', 'table', 'wordcount'
+    ],
+    toolbar: 'undo redo | formatselect | ' +
+        'bold italic backcolor | alignleft aligncenter ' +
+        'alignright alignjustify | bullist numlist outdent indent | ' +
+        'removeformat',
+    content_style: 'body { font-family: Arial, sans-serif; font-size: 14px }',
+    statusbar: true,
+    resize: true
+});
+
 // Function to check if the Content ID field is empty and disable/enable the Generate button
 function toggleGenerateButton() {
   const contentId = document.getElementById('content-id').value.trim();
   document.getElementById('generate-btn').disabled = contentId === '';  // Disable if Content ID is blank
 }
 
-// Function to check if any form field has content and enable/disable buttons accordingly
 function toggleButtons() {
-  const contentId = document.getElementById('content-id').value.trim();
-  const summary = document.getElementById('summary').value.trim();
-  const tags = document.getElementById('tags').value.trim();
-  const vocabularyWords = document.getElementById('vocabulary-words').value.trim();
-  const glossedText = document.getElementById('glossed-text').value.trim();
-  const mcqs = document.getElementById('multiple-choice-questions').value.trim();
+    const contentId = document.getElementById('content-id').value.trim();
+    const summary = tinymce.get('summary') ? tinymce.get('summary').getContent().trim() : '';
+    const tags = document.getElementById('tags').value.trim();
+    const vocabularyWords = tinymce.get('vocabulary-words') ? tinymce.get('vocabulary-words').getContent().trim() : '';
+    const glossedText = tinymce.get('glossed-text') ? tinymce.get('glossed-text').getContent().trim() : '';
+    const mcqs = tinymce.get('multiple-choice-questions') ? tinymce.get('multiple-choice-questions').getContent().trim() : '';
 
-  const isFormFilled = contentId || summary || tags || vocabularyWords || glossedText || mcqs;
+    const isFormFilled = contentId || summary || tags || vocabularyWords || glossedText || mcqs;
 
-  document.getElementById('submit-btn').disabled = !isFormFilled;
-  document.getElementById('clear-btn').disabled = !isFormFilled;
+    document.getElementById('submit-btn').disabled = !isFormFilled;
+    document.getElementById('clear-btn').disabled = !isFormFilled;
 
-  toggleGenerateButton();  // Call the function to check and disable the Generate button
+    toggleGenerateButton();
 }
 
 // Add event listeners to all form fields to detect changes
@@ -134,11 +209,41 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
     const data = await response.json();
 
     // Populate the text fields with the generated content
-    document.getElementById('summary').value = data.summary;
+	tinymce.get('summary').setContent(data.summary);
     document.getElementById('tags').value = data.tags;
-    document.getElementById('vocabulary-words').value = data.vocabularyWords; // Ensure vocab terms are formatted correctly
-    document.getElementById('glossed-text').value = data.modifiedSelectionText; // Populate glossed text
-    document.getElementById('multiple-choice-questions').value = data.mcqs; // Populate multiple choice questions
+if (tinymce.get('summary')) {
+    const summaryParagraphs = data.summary.split('\n').map(line => `<p>${line}</p>`).join('');
+    tinymce.get('summary').setContent(summaryParagraphs);
+}
+document.getElementById('tags').value = data.tags;
+if (tinymce.get('glossed-text')) {
+    // Format glossed text with title and byline separation
+    const lines = data.modifiedSelectionText.split('\n');
+    const title = lines[0];
+    const byline = lines[1];
+    const rest = lines.slice(2).map(line => `${line}<br>`).join('');
+    const formattedText = `${title}<br>${byline}<br>${rest}`;
+    tinymce.get('glossed-text').setContent(formattedText);
+}
+if (tinymce.get('vocabulary-words')) {
+    // Vocabulary words each in their own paragraph
+    const vocabParagraphs = data.vocabularyWords.split('\n').map(line => `<p>${line}</p>`).join('');
+    tinymce.get('vocabulary-words').setContent(vocabParagraphs);
+}
+if (tinymce.get('multiple-choice-questions')) {
+    // Format MCQs with proper spacing
+    const mcqs = data.mcqs.split(/\n(?=\d+\.)/);
+    const formattedMcqs = mcqs.map(mcq => {
+        const lines = mcq.trim().split('\n');
+        const question = lines[0];
+        const answers = lines.slice(1, 5);
+        const standards = lines[5];
+        return `${question}<br>` +
+               `${answers.map(answer => `${answer}<br>`).join('')}` +
+               `${standards}<br><br>`;
+    }).join('');
+    tinymce.get('multiple-choice-questions').setContent(formattedMcqs);
+}
 
     // Logic to show extracted standards - unhide the title and pre tags
     document.getElementById('standards-dictionary').textContent = JSON.stringify(data.standardsDictionary, null, 2);
@@ -168,15 +273,32 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
 document.getElementById('submit-btn').addEventListener('click', async () => {
   const confirmation = confirm('Submit all lesson plan content?');
   if (!confirmation) {
-    return;  // If the user clicks Cancel, do nothing
+    return;
   }
 
+  const summaryContent = tinymce.get('summary').getContent();
+  console.log('TinyMCE Content:', {
+    raw: summaryContent,
+    hasStrong: summaryContent.includes('<strong>'),
+    hasEm: summaryContent.includes('<em>'),
+    hasB: summaryContent.includes('<b>'),
+    hasI: summaryContent.includes('<i>')
+  });
+
   const contentId = document.getElementById('content-id').value;
-  const summary = document.getElementById('summary').value;
+  const summary = summaryContent;  // Use the content we just logged
   const tags = document.getElementById('tags').value;
-  const vocabularyWords = document.getElementById('vocabulary-words').value;
-  const glossedText = document.getElementById('glossed-text').value;
-  const mcqs = document.getElementById('multiple-choice-questions').value;
+  const glossedText = tinymce.get('glossed-text').getContent();
+  const vocabularyWords = tinymce.get('vocabulary-words').getContent();
+  const mcqs = tinymce.get('multiple-choice-questions').getContent();
+
+  // Add detailed logging
+  console.log('Raw TinyMCE Content:', {
+    summary: tinymce.get('summary').getContent(),
+    glossedText: tinymce.get('glossed-text').getContent(),
+    vocabularyWords: tinymce.get('vocabulary-words').getContent(),
+    mcqs: tinymce.get('multiple-choice-questions').getContent()
+  });
 
   try {
     const response = await fetch('/submit-lesson', {
@@ -185,7 +307,11 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
       body: JSON.stringify({ contentId, summary, tags, vocabularyWords, glossedText, mcqs })
     });
 
+    // Log the response
+    console.log('Server Response:', await response.clone().json());
+    
     const result = await response.json();
+    // ... rest of your code
 
     if (result.success) {
       const popup = document.getElementById('success-popup');
@@ -214,43 +340,57 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
   }
 });
 
-// Close the success popup and reset the form after clicking OK
 document.getElementById('close-popup').addEventListener('click', () => {
-  const popup = document.getElementById('success-popup');
-  popup.style.display = 'none';
+    const popup = document.getElementById('success-popup');
+    popup.style.display = 'none';
 
-  document.getElementById('content-id').value = '';
-  document.getElementById('summary').value = '';
-  document.getElementById('tags').value = '';
-  document.getElementById('vocabulary-words').value = '';
-  document.getElementById('glossed-text').value = '';
-  document.getElementById('multiple-choice-questions').value = '';
-  document.getElementById('standards-dictionary').textContent = '';
-  document.getElementById('standards-title').classList.add('hidden');
-  document.getElementById('standards-dictionary').classList.add('hidden');
-
-  document.getElementById('generate-btn').textContent = 'Generate Lesson Plan';
-  toggleButtons();
-});
-
-// Clear form functionality with confirmation
-document.getElementById('clear-btn').addEventListener('click', () => {
-  const confirmation = confirm('This will delete all lesson plan content. Do you want to proceed?');
-  
-  if (confirmation) {
     document.getElementById('content-id').value = '';
-    document.getElementById('summary').value = '';
+    if (tinymce.get('summary')) {
+        tinymce.get('summary').setContent('');
+    }
     document.getElementById('tags').value = '';
-    document.getElementById('vocabulary-words').value = '';
-    document.getElementById('glossed-text').value = '';
-    document.getElementById('multiple-choice-questions').value = '';
+    if (tinymce.get('vocabulary-words')) {
+        tinymce.get('vocabulary-words').setContent('');
+    }
+    if (tinymce.get('glossed-text')) {
+        tinymce.get('glossed-text').setContent('');
+    }
+    if (tinymce.get('multiple-choice-questions')) {
+        tinymce.get('multiple-choice-questions').setContent('');
+    }
     document.getElementById('standards-dictionary').textContent = '';
     document.getElementById('standards-title').classList.add('hidden');
     document.getElementById('standards-dictionary').classList.add('hidden');
 
     document.getElementById('generate-btn').textContent = 'Generate Lesson Plan';
     toggleButtons();
-  }
+});
+
+document.getElementById('clear-btn').addEventListener('click', () => {
+    const confirmation = confirm('This will delete all lesson plan content. Do you want to proceed?');
+    
+    if (confirmation) {
+        document.getElementById('content-id').value = '';
+        if (tinymce.get('summary')) {
+            tinymce.get('summary').setContent('');
+        }
+        document.getElementById('tags').value = '';
+        if (tinymce.get('vocabulary-words')) {
+            tinymce.get('vocabulary-words').setContent('');
+        }
+        if (tinymce.get('glossed-text')) {
+            tinymce.get('glossed-text').setContent('');
+        }
+        if (tinymce.get('multiple-choice-questions')) {
+            tinymce.get('multiple-choice-questions').setContent('');
+        }
+        document.getElementById('standards-dictionary').textContent = '';
+        document.getElementById('standards-title').classList.add('hidden');
+        document.getElementById('standards-dictionary').classList.add('hidden');
+
+        document.getElementById('generate-btn').textContent = 'Generate Lesson Plan';
+        toggleButtons();
+    }
 });
 
 // Initial call to disable/enable buttons based on form content
