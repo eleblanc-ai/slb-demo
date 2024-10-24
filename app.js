@@ -30,14 +30,6 @@ function stripHtml(html) {
 }
 
 async function saveToWord(contentId, summary, tags, vocabularyWords, glossedText, mcqs) {
-    // Add debugging log
-    console.log('Processing content:', {
-        summary: summary?.substring(0, 100),
-        tags: tags?.substring(0, 100),
-        vocabularyWords: vocabularyWords?.substring(0, 100),
-        glossedText: glossedText?.substring(0, 100),
-        mcqs: mcqs?.substring(0, 100)
-    });
 
   function splitIntoParagraphs(content) {
     if (!content) return [];
@@ -80,45 +72,49 @@ async function saveToWord(contentId, summary, tags, vocabularyWords, glossedText
             });
         }
 
-        // For other content types, preserve formatting
-        const sections = decodedContent
-            .replace(/<ul>/g, '')
-            .replace(/<\/ul>/g, '')
-        .replace(/<p>/g, '\n') // Ensure each paragraph starts a new line
-        .replace(/<\/p>/g, '\n')
-        .replace(/<br\s*\/?>/g, '\n') // Handle <br> for line breaks
-        .replace(/<[^>]*>/g, '') // Strip remaining HTML tags
-            .split('\n')
-            .filter(line => line.trim());
+// For other content types, preserve formatting
+const sections = decodedContent
+    .replace(/<ul>/g, '')
+    .replace(/<\/ul>/g, '')
+    .replace(/<p>/g, '\n')
+    .replace(/<\/p>/g, '\n')
+    .replace(/<br\s*\/?>/g, '\n')
+    .split('\n')
+    .filter(line => line.trim());
 
-	return sections.map(line => {
-            // Check if this was a list item in the original content
-            const isListItem = line.includes('<li>') || line.includes('</li>');
+return sections.map((line, index) => {
+    // Check if this is glossed text by looking for the title pattern
+    const isGlossedText = sections[0].includes('(excerpt from');
+    const isTitle = isGlossedText && index === 0;
+    const isByline = isGlossedText && index === 1;
+
+    // Check if this was a list item in the original content
+    const isListItem = line.includes('<li>') || line.includes('</li>');
             
-            // Clean the line of any remaining HTML tags
-            const cleanLine = line
-                .replace(/<li>/g, '')
-                .replace(/<\/li>/g, '')
-                .replace(/<[^>]*>/g, '')
-                .trim();
+    // Clean the line of any remaining HTML tags
+    const cleanLine = line
+        .replace(/<li>/g, '')
+        .replace(/<\/li>/g, '')
+        .replace(/<[^>]*>/g, '')
+        .trim();
 
-            return new Paragraph({
-                children: [
-                    new TextRun({
-                        text: cleanLine,
-                        font: "Aptos",
-                        size: 24,
-                    })
-                ],
-                spacing: {
-                    before: 0,
-                    after: 200,
-                    line: 240
-                },
-                bullet: isListItem ? { level: 0 } : undefined  // Only add bullet if it was a list item
-            });
-        });
-
+    return new Paragraph({
+        children: [
+            new TextRun({
+                text: cleanLine,
+                font: "Aptos",
+                size: 24,
+            })
+        ],
+        spacing: {
+            before: 0,
+            // No space after title and byline, normal spacing for other paragraphs
+            after: (isTitle) ? 0 : 200,
+            line: 240
+        },
+        bullet: isListItem ? { level: 0 } : undefined  // Only add bullet if it was a list item
+    });
+});
         return sections.map(line => {
             // Process each line to preserve formatting
             const runs = [];

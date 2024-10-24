@@ -116,7 +116,7 @@ const autocompleteList = document.getElementById('autocomplete-list');
 // Function to fetch content IDs from the external file
 async function fetchContentIDs() {
   try {
-const response = await fetch('/assets/files/contentIDs.json');
+    const response = await fetch('/assets/files/contentIDs.json');
     const data = await response.json(); // Parse the JSON data
     return data.contentIDs; // Return the list of content IDs
   } catch (error) {
@@ -178,20 +178,20 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
     return;
   }
 
-// Fetch valid content IDs and check
-try {
+  // Fetch valid content IDs and check
+  try {
     const response = await fetch('/assets/files/contentIDs.json');
     const data = await response.json();
     const validIDs = data.contentIDs;
 
     if (!validIDs.includes(contentId)) {
-        alert('Invalid content ID. Please try again.');
-        document.getElementById('content-id').value = '';  // Clear the field
-        return;
+      alert('Invalid content ID. Please try again.');
+      document.getElementById('content-id').value = '';  // Clear the field
+      return;
     }
-} catch (error) {
+  } catch (error) {
     console.error('Error checking content ID:', error);
-}
+  }
 
   // Disable the button
   const generateButton = document.getElementById('generate-btn');
@@ -207,17 +207,28 @@ try {
   progressContainer.classList.remove('hidden');
 
   // Start the progress bar animation
-  progressBar.style.width = '0%';
   let progress = 0;
+  let progressInterval;
 
   const interval = setInterval(() => {
-    if (progress < 100) {  // Progress bar will max out at 100%
-      progress += 0.3;     // Increase progress by 0.3% every 100ms
+    if (progress >= 100) {
+      clearInterval(interval);
+      progress = 0;
+      progressBar.style.width = '0%';
+      progressInterval = setInterval(() => {
+        if (progress < 100) {
+          progress += 0.3;
+          progressBar.style.width = `${progress}%`;
+        } else {
+          progress = 0;
+          progressBar.style.width = '0%';
+        }
+      }, 100);
     } else {
-      progress = 0;  // Reset progress to 0 if it reaches 100% and lesson is still generating
+      progress += 0.3;
+      progressBar.style.width = `${progress}%`;
     }
-    progressBar.style.width = `${progress}%`;
-  }, 100); // Update every 100ms
+  }, 100);
 
   try {
     const response = await fetch('/generate', {
@@ -226,68 +237,59 @@ try {
       body: JSON.stringify({ contentId })
     });
 
+    // When done, clear both intervals and set to 100%
+    clearInterval(interval);
+    clearInterval(progressInterval);
+    progressBar.style.width = '100%';
+
     const data = await response.json();
 
     // Populate the text fields with the generated content
-	tinymce.get('summary').setContent(data.summary);
+    if (tinymce.get('summary')) {
+      const summaryParagraphs = data.summary.split('\n').map(line => `<p>${line}</p>`).join('');
+      tinymce.get('summary').setContent(summaryParagraphs);
+    }
     document.getElementById('tags').value = data.tags;
-if (tinymce.get('summary')) {
-    const summaryParagraphs = data.summary.split('\n').map(line => `<p>${line}</p>`).join('');
-    tinymce.get('summary').setContent(summaryParagraphs);
-}
-document.getElementById('tags').value = data.tags;
-if (tinymce.get('glossed-text')) {
-    // Format glossed text with title and byline separation
-    const lines = data.modifiedSelectionText.split('\n');
-    const title = lines[0];
-    const byline = lines[1];
-    const rest = lines.slice(2).map(line => `${line}<br>`).join('');
-    const formattedText = `${title}<br>${byline}<br>${rest}`;
-    tinymce.get('glossed-text').setContent(formattedText);
-}
-if (tinymce.get('vocabulary-words')) {
-    // Vocabulary words each in their own paragraph
-    const vocabParagraphs = data.vocabularyWords.split('\n').map(line => `<p>${line}</p>`).join('');
-    tinymce.get('vocabulary-words').setContent(vocabParagraphs);
-}
-if (tinymce.get('multiple-choice-questions')) {
-    // Format MCQs with proper spacing
-    const mcqs = data.mcqs.split(/\n(?=\d+\.)/);
-    const formattedMcqs = mcqs.map(mcq => {
+    if (tinymce.get('glossed-text')) {
+      const lines = data.modifiedSelectionText.split('\n');
+      const title = lines[0];
+      const byline = lines[1];
+      const rest = lines.slice(2).map(line => `${line}<br>`).join('');
+      const formattedText = `${title}<br>${byline}<br>${rest}`;
+      tinymce.get('glossed-text').setContent(formattedText);
+    }
+    if (tinymce.get('vocabulary-words')) {
+      const vocabParagraphs = data.vocabularyWords.split('\n').map(line => `<p>${line}</p>`).join('');
+      tinymce.get('vocabulary-words').setContent(vocabParagraphs);
+    }
+    if (tinymce.get('multiple-choice-questions')) {
+      const mcqs = data.mcqs.split(/\n(?=\d+\.)/);
+      const formattedMcqs = mcqs.map(mcq => {
         const lines = mcq.trim().split('\n');
         const question = lines[0];
         const answers = lines.slice(1, 5);
         const standards = lines[5];
-        return `${question}<br>` +
-               `${answers.map(answer => `${answer}<br>`).join('')}` +
-               `${standards}<br><br>`;
-    }).join('');
-    tinymce.get('multiple-choice-questions').setContent(formattedMcqs);
-}
+        return `${question}<br>${answers.map(answer => `${answer}<br>`).join('')}${standards}<br><br>`;
+      }).join('');
+      tinymce.get('multiple-choice-questions').setContent(formattedMcqs);
+    }
 
-    // Logic to show extracted standards - unhide the title and pre tags
+// Logic to show extracted standards - unhide the title and pre tags
     document.getElementById('standards-dictionary').textContent = JSON.stringify(data.standardsDictionary, null, 2);
     document.getElementById('standards-title').classList.remove('hidden');
     document.getElementById('standards-dictionary').classList.remove('hidden');
 
-    // Change button text to "Regenerate"
-    generateButton.textContent = 'Regenerate';
-
-    // Progress bar to 100% when done
-    clearInterval(interval); // Stop the progress interval
-    progressBar.style.width = '100%';  // Ensure it fills to 100%
-    loadingMessage.textContent = 'Done!';  // Change the loading message to "Done!"
+    loadingMessage.textContent = 'Done!';
   } catch (error) {
     console.error('Error generating lesson plan:', error);
   } finally {
-    // Keep the progress bar and message for 1 second before hiding them
     setTimeout(() => {
-      generateButton.disabled = false;  // Re-enable the button
-      progressContainer.classList.add('hidden');  // Hide the progress bar
-      loadingMessage.classList.add('hidden');     // Hide the loading message
-    }, 1500); // Delay hiding
-  }
-});
+      generateButton.disabled = false;
+      generateButton.textContent = 'Regenerate';
+      progressContainer.classList.add('hidden');
+      loadingMessage.classList.add('hidden');
+    }, 1500);
+  }});
 
 // Submit Lesson Plan with confirmation
 document.getElementById('submit-btn').addEventListener('click', async () => {
@@ -306,19 +308,11 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
   });
 
   const contentId = document.getElementById('content-id').value;
-  const summary = summaryContent;  // Use the content we just logged
+  const summary = summaryContent;
   const tags = document.getElementById('tags').value;
   const glossedText = tinymce.get('glossed-text').getContent();
   const vocabularyWords = tinymce.get('vocabulary-words').getContent();
   const mcqs = tinymce.get('multiple-choice-questions').getContent();
-
-  // Add detailed logging
-  console.log('Raw TinyMCE Content:', {
-    summary: tinymce.get('summary').getContent(),
-    glossedText: tinymce.get('glossed-text').getContent(),
-    vocabularyWords: tinymce.get('vocabulary-words').getContent(),
-    mcqs: tinymce.get('multiple-choice-questions').getContent()
-  });
 
   try {
     const response = await fetch('/submit-lesson', {
@@ -327,31 +321,24 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
       body: JSON.stringify({ contentId, summary, tags, vocabularyWords, glossedText, mcqs })
     });
 
-    // Log the response
-    console.log('Server Response:', await response.clone().json());
-    
     const result = await response.json();
-    // ... rest of your code
 
     if (result.success) {
       const popup = document.getElementById('success-popup');
       popup.style.display = 'block';
 
-      // Set the href attributes for the download links
       document.getElementById('word-link').setAttribute('href', result.wordFile);
       document.getElementById('excel-link').setAttribute('href', result.excelFile);
 
-      // Set the download attribute with the correct filenames
-      const wordFileName = result.wordFile.split('/').pop();  // Extract the actual Word filename
-      const excelFileName = result.excelFile.split('/').pop();  // Extract the actual Excel filename
+      const wordFileName = result.wordFile.split('/').pop();
+      const excelFileName = result.excelFile.split('/').pop();
       document.getElementById('word-link').setAttribute('download', wordFileName);
       document.getElementById('excel-link').setAttribute('download', excelFileName);
 
       document.getElementById('generate-btn').textContent = 'Generate Lesson Plan';
       toggleButtons();
 
-      window.scrollTo({ top: 0, behavior: 'smooth' }); // Smooth scroll to the top
-
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       alert('Error submitting the lesson plan.');
     }
@@ -360,6 +347,7 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
   }
 });
 
+// Close popup and clear form
 document.getElementById('close-popup').addEventListener('click', () => {
     const popup = document.getElementById('success-popup');
     popup.style.display = 'none';
@@ -386,6 +374,7 @@ document.getElementById('close-popup').addEventListener('click', () => {
     toggleButtons();
 });
 
+// Clear form functionality
 document.getElementById('clear-btn').addEventListener('click', () => {
     const confirmation = confirm('This will delete all lesson plan content. Do you want to proceed?');
     
