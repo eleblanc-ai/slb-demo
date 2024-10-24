@@ -1,7 +1,7 @@
-// Initialize Summary editor
+// Summary editor
 tinymce.init({
     selector: '#summary',
-    height: 250,
+    height: 300,
     menubar: true,
     plugins: [
         'advlist', 'autolink', 'lists', 'link', 'charmap', 'preview',
@@ -14,7 +14,12 @@ tinymce.init({
         'removeformat',
     content_style: 'body { font-family: Arial, sans-serif; font-size: 14px }',
     statusbar: true,
-    resize: true
+    resize: true,
+    setup: function(editor) {
+        editor.on('init', function() {
+            document.body.classList.add('loaded');
+        });
+    }
 });
 
 // Initialize Glossed Text editor
@@ -173,18 +178,20 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
     return;
   }
 
-  try {
+// Fetch valid content IDs and check
+try {
     const response = await fetch('/assets/files/contentIDs.json');
     const data = await response.json();
     const validIDs = data.contentIDs;
 
     if (!validIDs.includes(contentId)) {
-      alert('Invalid content ID. Please try again.');
-      return;
+        alert('Invalid content ID. Please try again.');
+        document.getElementById('content-id').value = '';  // Clear the field
+        return;
     }
-  } catch (error) {
+} catch (error) {
     console.error('Error checking content ID:', error);
-  }
+}
 
   // Disable the button
   const generateButton = document.getElementById('generate-btn');

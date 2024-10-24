@@ -10,7 +10,12 @@ body {
   margin: 0;
   padding: 20px;
   overflow-x: hidden;
-  transition: all 1s ease-in-out;
+    opacity: 0;
+    transition: opacity 0.5s ease-in;
+}
+
+body.loaded {
+	opacity: 1;
 }
 
 .container {
