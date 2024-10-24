@@ -51,6 +51,39 @@ async function saveToWord(contentId, summary, tags, vocabularyWords, glossedText
             .replace(/&nbsp;/g, " ")
             .replace(/&amp;/g, "&");
 
+// Special handling for vocabulary words with bullets
+if (content.includes('(noun):') || content.includes('(verb):') || content.includes('(adjective):') || content.includes('(proper')) {
+    const sections = decodedContent
+        .replace(/<p>/g, '')
+        .replace(/<\/p>/g, '\n')
+        .replace(/<br\s*\/?>/g, '\n')
+        .replace(/<ul>/g, '')
+        .replace(/<\/ul>/g, '')
+        .replace(/<li>/g, '')  // Remove the li tags without adding bullets
+        .replace(/<\/li>/g, '\n')
+        .replace(/<[^>]*>/g, '')
+        .split('\n')
+        .filter(line => line.trim());
+
+    return sections.map(line => {
+        return new Paragraph({
+            children: [
+                new TextRun({
+                    text: line.trim(),
+                    font: "Aptos",
+                    size: 24,
+                })
+            ],
+            spacing: {
+                after: 120
+            },
+            bullet: {
+                level: 0  // This creates a proper Word bullet point
+            }
+        });
+    });
+}
+
         // Special handling for MCQs
         if (content.includes('A.') && content.includes('B.') && content.includes('C.') && content.includes('D.')) {
             const sections = decodedContent

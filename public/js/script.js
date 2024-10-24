@@ -173,6 +173,19 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
     return;
   }
 
+  try {
+    const response = await fetch('/assets/files/contentIDs.json');
+    const data = await response.json();
+    const validIDs = data.contentIDs;
+
+    if (!validIDs.includes(contentId)) {
+      alert('Invalid content ID. Please try again.');
+      return;
+    }
+  } catch (error) {
+    console.error('Error checking content ID:', error);
+  }
+
   // Disable the button
   const generateButton = document.getElementById('generate-btn');
   generateButton.disabled = true;
