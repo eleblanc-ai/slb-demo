@@ -51,39 +51,6 @@ async function saveToWord(contentId, summary, tags, vocabularyWords, glossedText
             .replace(/&nbsp;/g, " ")
             .replace(/&amp;/g, "&");
 
-// Special handling for vocabulary words with bullets
-if (content.includes('(noun):') || content.includes('(verb):') || content.includes('(adjective):') || content.includes('(proper')) {
-    const sections = decodedContent
-        .replace(/<p>/g, '')
-        .replace(/<\/p>/g, '\n')
-        .replace(/<br\s*\/?>/g, '\n')
-        .replace(/<ul>/g, '')
-        .replace(/<\/ul>/g, '')
-        .replace(/<li>/g, '')  // Remove the li tags without adding bullets
-        .replace(/<\/li>/g, '\n')
-        .replace(/<[^>]*>/g, '')
-        .split('\n')
-        .filter(line => line.trim());
-
-    return sections.map(line => {
-        return new Paragraph({
-            children: [
-                new TextRun({
-                    text: line.trim(),
-                    font: "Aptos",
-                    size: 24,
-                })
-            ],
-            spacing: {
-                after: 120
-            },
-            bullet: {
-                level: 0  // This creates a proper Word bullet point
-            }
-        });
-    });
-}
-
         // Special handling for MCQs
         if (content.includes('A.') && content.includes('B.') && content.includes('C.') && content.includes('D.')) {
             const sections = decodedContent
@@ -115,11 +82,42 @@ if (content.includes('(noun):') || content.includes('(verb):') || content.includ
 
         // For other content types, preserve formatting
         const sections = decodedContent
-            .replace(/<p>/g, '')
-            .replace(/<\/p>/g, '\n\n')
-            .replace(/<br\s*\/?>/g, '\n')
+            .replace(/<ul>/g, '')
+            .replace(/<\/ul>/g, '')
+        .replace(/<p>/g, '\n') // Ensure each paragraph starts a new line
+        .replace(/<\/p>/g, '\n')
+        .replace(/<br\s*\/?>/g, '\n') // Handle <br> for line breaks
+        .replace(/<[^>]*>/g, '') // Strip remaining HTML tags
             .split('\n')
             .filter(line => line.trim());
+
+	return sections.map(line => {
+            // Check if this was a list item in the original content
+            const isListItem = line.includes('<li>') || line.includes('</li>');
+            
+            // Clean the line of any remaining HTML tags
+            const cleanLine = line
+                .replace(/<li>/g, '')
+                .replace(/<\/li>/g, '')
+                .replace(/<[^>]*>/g, '')
+                .trim();
+
+            return new Paragraph({
+                children: [
+                    new TextRun({
+                        text: cleanLine,
+                        font: "Aptos",
+                        size: 24,
+                    })
+                ],
+                spacing: {
+                    before: 0,
+                    after: 200,
+                    line: 240
+                },
+                bullet: isListItem ? { level: 0 } : undefined  // Only add bullet if it was a list item
+            });
+        });
 
         return sections.map(line => {
             // Process each line to preserve formatting
@@ -198,7 +196,7 @@ if (content.includes('(noun):') || content.includes('(verb):') || content.includ
             return new Paragraph({
                 children: runs,
                 spacing: {
-                    after: 200
+                    after: 240
                 }
             });
         });
